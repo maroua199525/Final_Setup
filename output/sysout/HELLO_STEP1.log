@@ -1,0 +1,9 @@
+Executing COBOL program: hello_world.cbl
+Found COBOL program at: programs/hello_world.cbl
+Compiling hello_world.cbl...
+Compilation successful. Executing...
+
+Hello World from JCL Framework!
+================================
+This is a simple COBOL program demonstration
+Program executed successfully

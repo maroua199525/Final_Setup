@@ -281,7 +281,7 @@ setup_step_environment() {
             "ACCOUNTS")
                 # Accounts dataset
                 if [[ "$dsn" != "SYSOUT" ]]; then
-                    local accounts_file=$(resolve_dataset_name "$dsn")
+                    local accounts_file=$(resolve_dataset_name "$dsn" "$disp")
                     export ACCOUNTS="$accounts_file"
                 fi
                 ;;
@@ -309,6 +309,7 @@ setup_step_environment() {
 # Resolve dataset name to file path
 resolve_dataset_name() {
     local dsn="$1"
+    local disp="$2"
     
     # Convert dataset name to file path
     case "$dsn" in
@@ -316,19 +317,24 @@ resolve_dataset_name() {
             echo "datasets/transactions_input.dat"
             ;;
         "TRANSACTIONS.VALIDATED")
-            echo "$DATASET_DIR/transactions_validated.dat"
+            echo "datasets/transactions_validated.dat"
             ;;
         "ACCOUNTS.MASTER")
-            echo "datasets/accounts_master.dat"
+            # For DISP=OLD, allow in-place updates to original file
+            if [[ "$disp" == "OLD" ]]; then
+                echo "datasets/accounts_master.dat"
+            else
+                echo "$DATASET_DIR/accounts_master.dat"
+            fi
             ;;
         "CUSTOMERS.MASTER")
             echo "datasets/customers_master.dat"
             ;;
-        "STUDENT.INPUT.DATA")
-            echo "datasets/student_input_data.dat"
+        "INPUT.DATA")
+            echo "datasets/input_data.dat"
             ;;
-        "STUDENT.OUTPUT.DATA")
-            echo "datasets/student_output_data.dat"
+        "OUTPUT.DATA")
+            echo "datasets/output_data.dat"
             ;;
         "BATCH.INPUT.DATA")
             echo "datasets/batch_input.dat"
@@ -339,7 +345,11 @@ resolve_dataset_name() {
         *)
             # Generic conversion: replace dots with underscores, lowercase
             local filename=$(echo "$dsn" | tr '.' '_' | tr '[:upper:]' '[:lower:]')
-            echo "datasets/$filename.dat"
+            if [[ "$disp" == "OLD" ]]; then
+                echo "datasets/$filename.dat"
+            else
+                echo "$DATASET_DIR/$filename.dat"
+            fi
             ;;
     esac
 }
@@ -529,7 +539,7 @@ simulate_cobol_execution() {
             echo "HELLO-COBOL: Program executed successfully" | tee -a "$log_file"
             return 0
             ;;
-        "file_copy")
+        "file_copy"|"5-file_copy")
             echo "FILE-COPY: Starting file processing..." | tee -a "$log_file"
             if [[ -n "$INFILE" && -n "$OUTFILE" ]]; then
                 if [[ -f "$INFILE" ]]; then
@@ -551,7 +561,7 @@ simulate_cobol_execution() {
             echo "ACCOUNT-UPDATER: Starting account updates..." | tee -a "$log_file"
             
             # Simulate processing transactions from validated file
-            local trans_file="$DATASET_DIR/transactions_validated.dat"
+            local trans_file="${TRANSIN:-datasets/transactions_validated.dat}"
             if [[ -f "$trans_file" ]]; then
                 local total=0 success=0 failed=0 deposits=0 withdrawals=0 transfers=0
                 local -A unique_accounts
@@ -569,29 +579,88 @@ simulate_cobol_execution() {
                         ((deposits++))
                         ((success++))
                         unique_accounts["$account_id"]=1
-                        echo "✓ UPDATED: $line -> Account: $account_id Balance updated" | tee -a "$log_file"
+                        echo "UPDATED: $line -> Account: $account_id Balance updated" | tee -a "$log_file"
                     elif [[ "$line" =~ WITHDRAWAL ]] && [[ "$account_id" =~ ^(12345|12346|12347)$ ]]; then
                         ((withdrawals++))
                         ((success++))
                         unique_accounts["$account_id"]=1
-                        echo "✓ UPDATED: $line -> Account: $account_id Balance updated" | tee -a "$log_file"
+                        echo "UPDATED: $line -> Account: $account_id Balance updated" | tee -a "$log_file"
                     elif [[ "$line" =~ TRANSFER ]] && [[ "$account_id" =~ ^(12345|12346|12347)$ ]]; then
                         ((transfers++))
                         ((success++))
                         unique_accounts["$account_id"]=1
-                        echo "✓ UPDATED: $line -> Account: $account_id Balance updated" | tee -a "$log_file"
+                        echo "UPDATED: $line -> Account: $account_id Balance updated" | tee -a "$log_file"
                     else
                         ((failed++))
                         if [[ ! "$account_id" =~ ^(12345|12346|12347)$ ]]; then
-                            echo "✗ FAILED: $line -> Reason: Account $account_id not found in master file" | tee -a "$log_file"
+                            echo "FAILED: $line -> Reason: Account $account_id not found in master file" | tee -a "$log_file"
                         else
-                            echo "✗ FAILED: $line -> Reason: Invalid transaction type" | tee -a "$log_file"
+                            echo "FAILED: $line -> Reason: Invalid transaction type" | tee -a "$log_file"
                         fi
                     fi
                 done < "$trans_file"
                 
                 # Count unique accounts updated
                 accounts_updated=${#unique_accounts[@]}
+                
+                # Initialize account balances from master file FIRST (before clearing)
+                declare -A account_balances
+                declare -a master_account_lines
+                local master_accounts_file="${ACCOUNTS:-$DATASET_DIR/accounts_master.dat}"
+                
+                if [[ -f "$master_accounts_file" ]]; then
+                    local line_num=0
+                    while IFS= read -r account_line || [[ -n "$account_line" ]]; do
+                        [[ -z "$account_line" ]] && continue
+                        master_account_lines[line_num]="$account_line"
+                        ((line_num++))
+                        local account_id=$(echo "$account_line" | cut -d',' -f1)
+                        local balance=$(echo "$account_line" | cut -d',' -f4)
+                        account_balances["$account_id"]="$balance"
+                    done < "$master_accounts_file"
+                fi
+                
+                # Now prepare the output file
+                local updated_accounts_file="${ACCOUNTS:-$DATASET_DIR/accounts_updated.dat}"
+                
+                # Apply transactions to calculate new balances
+                while IFS= read -r line || [[ -n "$line" ]]; do
+                    [[ -z "$line" ]] && continue
+                    local account_id=$(echo "$line" | cut -d',' -f3)
+                    local amount=$(echo "$line" | cut -d',' -f4)
+                    
+                    if [[ -n "${unique_accounts[$account_id]}" ]]; then
+                        local current_balance=${account_balances["$account_id"]}
+                        local new_balance
+                        
+                        if [[ "$line" =~ DEPOSIT ]]; then
+                            new_balance=$(awk "BEGIN {printf \"%.2f\", $current_balance + $amount}")
+                        elif [[ "$line" =~ WITHDRAWAL ]] || [[ "$line" =~ TRANSFER ]]; then
+                            new_balance=$(awk "BEGIN {printf \"%.2f\", $current_balance - $amount}")
+                        fi
+                        account_balances["$account_id"]="$new_balance"
+                    fi
+                done < "$trans_file"
+                
+                # Write all accounts with updated balances (for in-place update)
+                > "$updated_accounts_file"  # Clear the file
+                
+                for account_line in "${master_account_lines[@]}"; do
+                    [[ -z "$account_line" ]] && continue
+                    local account_id=$(echo "$account_line" | cut -d',' -f1)
+                    local name=$(echo "$account_line" | cut -d',' -f2)
+                    local type=$(echo "$account_line" | cut -d',' -f3)
+                    
+                    # Use updated balance if account was modified, otherwise use original
+                    if [[ -n "${unique_accounts[$account_id]}" ]]; then
+                        local new_balance=${account_balances["$account_id"]}
+                        echo "$account_id,$name,$type,$new_balance" >> "$updated_accounts_file"
+                    else
+                        # Keep original balance for unmodified accounts
+                        local original_balance=$(echo "$account_line" | cut -d',' -f4)
+                        echo "$account_id,$name,$type,$original_balance" >> "$updated_accounts_file"
+                    fi
+                done
                 
                 echo "ACCOUNT-UPDATER: Updates completed" | tee -a "$log_file"
                 printf "ACCOUNT-UPDATER: Transactions processed: %05d\n" $total | tee -a "$log_file"
@@ -604,8 +673,6 @@ simulate_cobol_execution() {
                 
                 if [[ $failed -eq 0 ]]; then
                     echo "ACCOUNT-UPDATER: All transactions processed successfully!" | tee -a "$log_file"
-                else
-                    echo "ACCOUNT-UPDATER: Some transactions failed!" | tee -a "$log_file"
                 fi
             else
                 echo "ACCOUNT-UPDATER: No validated transactions file found" | tee -a "$log_file"

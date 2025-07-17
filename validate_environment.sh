@@ -1,17 +1,17 @@
 #!/bin/bash
 #########################################################################
-# Environment Validation Script - Check if all datasets are properly set up
-# Ensures consistent environment before students start exercises
+# Environment Validation Script - Check if datasets are properly set up
+# Ensures consistent environment with hello world demonstration
 #########################################################################
 
-echo "🔍 JCL Framework - Environment Validation"
+echo "JCL Framework - Environment Validation"
 echo "=========================================="
-echo "Checking essential datasets and programs for Tasks 1, 2, 3 & File Copy..."
+echo "Checking essential datasets and hello_world environment..."
 echo ""
 
 # Check if dataset manager is working
 if ! ./dataset_manager.sh list >/dev/null 2>&1; then
-    echo "❌ Dataset manager not working. Run './setup_datasets.sh' first"
+    echo "Dataset manager not working. Run './setup_datasets.sh' first"
     exit 1
 fi
 
@@ -21,137 +21,95 @@ REQUIRED_DATASETS=(
     "TRANSACTIONS.VALIDATED"
     "ACCOUNTS.MASTER"
     "CUSTOMERS.MASTER"
-    "STUDENT.INPUT.DATA"
-    "STUDENT.OUTPUT.DATA"
+    "INPUT.DATA"
+    "OUTPUT.DATA"
 )
 
-echo "📋 Checking required datasets..."
+echo "Checking required datasets..."
 MISSING_COUNT=0
 
 for dataset in "${REQUIRED_DATASETS[@]}"; do
     if ./dataset_manager.sh list | grep -q "$dataset"; then
-        echo "✅ $dataset - OK"
+        echo "$dataset - OK"
     else
-        echo "❌ $dataset - MISSING"
+        echo "$dataset - MISSING"
         ((MISSING_COUNT++))
     fi
 done
 
 echo ""
-echo "📁 Checking data files..."
+echo "Checking data files..."
 DATA_FILES=(
     "datasets/transactions_input.dat"
     "datasets/accounts_master.dat"
     "datasets/customers_master.dat"
-    "datasets/student_input_data.dat"
+    "datasets/input_data.dat"
 )
 
 for file in "${DATA_FILES[@]}"; do
     if [ -f "$file" ]; then
-        echo "✅ $file - OK ($(wc -l < "$file") lines)"
+        echo "$file - OK ($(wc -l < "$file") lines)"
     else
-        echo "❌ $file - MISSING"
+        echo "$file - MISSING"
         ((MISSING_COUNT++))
     fi
 done
 
 echo ""
-echo "🔧 Checking essential COBOL programs..."
-PROGRAMS=(
-    "programs/batch_validator.cbl"
-    "programs/account_updater.cbl"
-    "programs/customer_reporter.cbl"
-    "programs/5-file_copy.cbl"
-    "programs/hello_world.cbl"
-)
+echo "Checking essential COBOL programs..."
 
-for program in "${PROGRAMS[@]}"; do
-    if [ -f "$program" ]; then
-        echo "✅ $program - OK"
+if [ -f "programs/hello_world.cbl" ]; then
+    echo "programs/hello_world.cbl - OK"
+else
+    echo "programs/hello_world.cbl - MISSING"
+    ((MISSING_COUNT++))
+fi
+
+echo ""
+echo "Checking essential JCL jobs..."
+
+if [ -f "jobs/hello_world.jcl" ]; then
+    echo "jobs/hello_world.jcl - OK"
+else
+    echo "jobs/hello_world.jcl - MISSING"
+    ((MISSING_COUNT++))
+fi
+
+echo ""
+echo "Checking standardized PGM names..."
+
+if [ -f "jobs/hello_world.jcl" ]; then
+    if grep -q "EXEC PGM=HELLO" "jobs/hello_world.jcl"; then
+        echo "jobs/hello_world.jcl uses standardized PGM=HELLO"
     else
-        echo "❌ $program - MISSING"
+        echo "jobs/hello_world.jcl does not use standardized PGM=HELLO"
         ((MISSING_COUNT++))
     fi
-done
+fi
 
 echo ""
-echo "📄 Checking essential JCL jobs..."
-JOBS=(
-    "jobs/batch_validator.jcl"
-    "jobs/account_updater.jcl"
-    "jobs/customer_reporter.jcl"
-    "jobs/file_copy.jcl"
-    "jobs/hello_world.jcl"
-    "jobs/banking_workflow.jcl"
-)
-
-for job in "${JOBS[@]}"; do
-    if [ -f "$job" ]; then
-        echo "✅ $job - OK"
-    else
-        echo "❌ $job - MISSING"
-        ((MISSING_COUNT++))
-    fi
-done
-
-echo ""
-echo "🎯 Checking standardized PGM names..."
-PGM_CHECKS=(
-    "jobs/batch_validator.jcl:VALIDATOR"
-    "jobs/account_updater.jcl:UPDATER"
-    "jobs/customer_reporter.jcl:REPORTER"
-    "jobs/file_copy.jcl:FILECOPY"
-    "jobs/hello_world.jcl:HELLO"
-    "jobs/banking_workflow.jcl:VALIDATOR"
-    "jobs/banking_workflow.jcl:UPDATER"
-    "jobs/banking_workflow.jcl:REPORTER"
-)
-
-for check in "${PGM_CHECKS[@]}"; do
-    file="${check%:*}"
-    expected_pgm="${check#*:}"
-    if [ -f "$file" ]; then
-        if grep -q "EXEC PGM=$expected_pgm" "$file"; then
-            echo "✅ $file uses standardized PGM=$expected_pgm"
-        else
-            echo "❌ $file does not use standardized PGM=$expected_pgm"
-            ((MISSING_COUNT++))
-        fi
-    fi
-done
-
-echo ""
-echo "📊 Validation Summary:"
+echo "Validation Summary:"
 echo "====================="
 if [ $MISSING_COUNT -eq 0 ]; then
-    echo "🎉 Essential Environment is READY!"
-    echo "✅ All essential datasets allocated"
-    echo "✅ All data files present"
-    echo "✅ All COBOL programs available"
-    echo "✅ All JCL jobs ready"
-    echo "✅ Standardized PGM names verified"
+    echo "Environment is READY!"
+    echo "All essential datasets allocated"
+    echo "All data files present"
+    echo "Hello World COBOL program available"
+    echo "Hello World JCL job ready"
+    echo "Standardized PGM name verified"
     echo ""
-    echo "🚀 Students can now start essential exercises!"
+    echo "You can now run the hello world demonstration and start working on tasks!"
     echo ""
-    echo "Quick test commands:"
+    echo "Quick test command:"
     echo "  ./jcl_parser.sh jobs/hello_world.jcl"
-    echo "  ./jcl_parser.sh jobs/file_copy.jcl"
-    echo "  ./jcl_parser.sh jobs/batch_validator.jcl"
-    echo "  ./jcl_parser.sh jobs/account_updater.jcl"
-    echo "  ./jcl_parser.sh jobs/customer_reporter.jcl"
-    echo "  ./jcl_parser.sh jobs/banking_workflow.jcl"
     echo ""
-    echo "📋 Tasks available:"
-    echo "  • Hello World: Basic COBOL demonstration"
-    echo "  • File Copy: Basic file operations"
-    echo "  • Task 1: Transaction validation (VALIDATOR)"
-    echo "  • Task 2: Account updates (UPDATER)"
-    echo "  • Task 3: Customer reporting (REPORTER)"
-    echo "  • Final Task: Complete banking workflow (VALIDATOR→UPDATER→REPORTER)"
+    echo "Available:"
+    echo "  - Hello World: Basic COBOL demonstration"
+    echo "  - Datasets ready for Tasks"
 else
-    echo "⚠️  Environment has $MISSING_COUNT missing components"
-    echo "🔧 Run './setup_datasets.sh' to fix missing datasets"
-    echo "📚 Check documentation for missing programs/jobs"
-    echo "💡 Ensure all PGM names are standardized"
+    echo "Environment has $MISSING_COUNT missing components"
+    echo "Run './setup_datasets.sh' to fix missing datasets"
+    echo "Check that hello_world.cbl and hello_world.jcl are present"
+    echo "Ensure PGM name is standardized to HELLO"
     exit 1
 fi
