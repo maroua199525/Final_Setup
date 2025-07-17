@@ -76,12 +76,6 @@ allocate_dataset() {
             ;;
     esac
     
-    # Check if dataset already exists in catalog
-    if grep -q "^$dsn|" "$CATALOG_FILE"; then
-        echo "Dataset $dsn already exists in catalog"
-        return 0
-    fi
-    
     # Add to catalog
     echo "$dsn|$type|$file_path|ACTIVE|$(date +%Y-%m-%d)|$space|$records" >> "$CATALOG_FILE"
     
