@@ -1,27 +1,11 @@
-Executing COBOL program: account_updater.cbl
-Found COBOL program at: programs/account_updater.cbl
-Compiling account_updater.cbl...
 Compilation failed with RC=1. Falling back to simulation...
-programs/account_updater.cbl:115: error: continuation character expected
+programs/account_updater.cbl:120: error: continuation character expected
 programs/account_updater.cbl: in paragraph 'PROCESS-SINGLE-TRANSACTION':
-programs/account_updater.cbl:104: error: 'WS' is not defined
-programs/account_updater.cbl:104: error: syntax error, unexpected -
-programs/account_updater.cbl:114: error: 'FAILED' is not defined
-programs/account_updater.cbl:114: error: syntax error, unexpected :
-programs/account_updater.cbl:114: error: invalid literal: '  ...'
-programs/account_updater.cbl:114: error: missing terminating " character
+programs/account_updater.cbl:109: error: 'WS' is not defined
+programs/account_updater.cbl:109: error: syntax error, unexpected -
+programs/account_updater.cbl:119: error: 'FAILED' is not defined
+programs/account_updater.cbl:119: error: syntax error, unexpected :
+programs/account_updater.cbl:119: error: invalid literal: '  ...'
+programs/account_updater.cbl:119: error: missing terminating " character
 Simulating execution of account_updater
-ACCOUNT-UPDATER: Starting account updates...
-UPDATED: TXN001,DEPOSIT   ,12345,1000.00,20240101 -> Account: 12345 Balance updated
-UPDATED: TXN002,WITHDRAWAL,12346,500.00,20240101 -> Account: 12346 Balance updated
-UPDATED: TXN003,TRANSFER  ,12345,200.00,20240101 -> Account: 12345 Balance updated
-UPDATED: TXN004,DEPOSIT   ,12347,750.00,20240101 -> Account: 12347 Balance updated
-FAILED: TXN005,INVALID   ,99999,999.99,20240101 -> Reason: Account 99999 not found in master file
-ACCOUNT-UPDATER: Updates completed
-ACCOUNT-UPDATER: Transactions processed: 00005
-ACCOUNT-UPDATER: Unique accounts updated: 00003
-ACCOUNT-UPDATER: Successful transactions: 00004
-ACCOUNT-UPDATER: Failed transactions: 00001
-ACCOUNT-UPDATER: Deposits processed: 00002
-ACCOUNT-UPDATER: Withdrawals processed: 00001
-ACCOUNT-UPDATER: Transfers processed: 00001
+Program account_updater executed successfully

@@ -41,6 +41,7 @@ echo ""
 echo "Checking data files..."
 DATA_FILES=(
     "datasets/transactions_input.dat"
+    "datasets/transactions_validated.dat"
     "datasets/accounts_master.dat"
     "datasets/customers_master.dat"
     "datasets/input_data.dat"
@@ -48,7 +49,9 @@ DATA_FILES=(
 
 for file in "${DATA_FILES[@]}"; do
     if [ -f "$file" ]; then
-        echo "$file - OK ($(wc -l < "$file") lines)"
+        # Count non-empty lines properly (handles files without final newline)
+        line_count=$(grep -c . "$file" 2>/dev/null || echo "0")
+        echo "$file - OK ($line_count lines)"
     else
         echo "$file - MISSING"
         ((MISSING_COUNT++))

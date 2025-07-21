@@ -7,16 +7,11 @@
        FILE-CONTROL.
            SELECT TRANSIN ASSIGN TO "TRANSIN"
                ORGANIZATION IS LINE SEQUENTIAL.
-           SELECT TRANSOUT ASSIGN TO "TRANSOUT"
-               ORGANIZATION IS LINE SEQUENTIAL.
        
        DATA DIVISION.
        FILE SECTION.
        FD  TRANSIN.
        01  TRANSACTION-INPUT       PIC X(80).
-       
-       FD  TRANSOUT.
-       01  TRANSACTION-OUTPUT      PIC X(80).
        
        WORKING-STORAGE SECTION.
        01  WS-COUNTERS.
@@ -42,12 +37,10 @@
            DISPLAY "BATCH-VALIDATOR: Starting transaction validation..."
            
            OPEN INPUT TRANSIN
-           OPEN OUTPUT TRANSOUT
            
            PERFORM PROCESS-TRANSACTIONS UNTIL WS-EOF-FLAG = 'Y'
            
            CLOSE TRANSIN
-           CLOSE TRANSOUT
            
            PERFORM DISPLAY-STATISTICS
            
@@ -70,9 +63,10 @@
        VALIDATE-TRANSACTION.
            MOVE TRANSACTION-INPUT TO WS-TRANSACTION-RECORD
            
-           IF WS-TXN-TYPE = 'DEPOSIT   ' OR 'WITHDRAWAL' OR 'TRANSFER  '
+           IF WS-TXN-TYPE = 'DEPOSIT   ' OR 
+              WS-TXN-TYPE = 'WITHDRAWAL' OR 
+              WS-TXN-TYPE = 'TRANSFER  '
                ADD 1 TO WS-VALID-COUNT
-               WRITE TRANSACTION-OUTPUT FROM TRANSACTION-INPUT
                DISPLAY "✓ VALID: " TRANSACTION-INPUT
            ELSE
                ADD 1 TO WS-INVALID-COUNT

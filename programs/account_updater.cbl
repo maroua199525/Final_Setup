@@ -9,6 +9,8 @@
                ORGANIZATION IS LINE SEQUENTIAL.
            SELECT TRANSIN ASSIGN TO "TRANSIN"
                ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT TRANSOUT ASSIGN TO "TRANSOUT"
+               ORGANIZATION IS LINE SEQUENTIAL.
        
        DATA DIVISION.
        FILE SECTION.
@@ -17,6 +19,9 @@
        
        FD  TRANSIN.
        01  TRANSACTION-RECORD      PIC X(80).
+       
+       FD  TRANSOUT.
+       01  UPDATED-ACCOUNT-RECORD  PIC X(80).
        
        WORKING-STORAGE SECTION.
        01  WS-TRANS-COUNT          PIC 9(5) VALUE 0.
@@ -102,10 +107,10 @@
        PROCESS-SINGLE-TRANSACTION.
            UNSTRING TRANSACTION-RECORD DELIMITED BY ','
                INTO WS-TXN-ID, WS-TXN-TYPE, WS-CURRENT-ACCT, WS-AMT, WS-DT
-           END-UNSTRING.
+           END-UNSTRING
            
-           MOVE FUNCTION NUMVAL(WS-AMT) TO WS-NUMERIC-AMT.
-           PERFORM FIND-ACCOUNT-IN-MEMORY.
+           MOVE FUNCTION NUMVAL(WS-AMT) TO WS-NUMERIC-AMT
+           PERFORM FIND-ACCOUNT-IN-MEMORY
            
            IF WS-FOUND-FLAG = 'Y'
                PERFORM UPDATE-ACCOUNT-IN-MEMORY
@@ -115,8 +120,8 @@
            ELSE
                ADD 1 TO WS-FAILED-COUNT
                DISPLAY "FAILED: " TRANSACTION-RECORD
-               DISPLAY " -> Reason: Account " WS-CURRENT-ACCT
-               DISPLAY " not found in master file"
+               DISPLAY " -> Reason: Account " WS-CURRENT-ACCT 
+                       " not found in master file"
            END-IF.
            
        FIND-ACCOUNT-IN-MEMORY.
@@ -130,16 +135,16 @@
            
        UPDATE-ACCOUNT-IN-MEMORY.
            EVALUATE WS-TXN-TYPE
-               WHEN 'DEPOSIT'
+               WHEN 'DEPOSIT   '
                    ADD WS-NUMERIC-AMT TO WS-ACCT-BALANCE(WS-I)
                WHEN 'WITHDRAWAL'
                    SUBTRACT WS-NUMERIC-AMT FROM WS-ACCT-BALANCE(WS-I)
-               WHEN 'TRANSFER'
+               WHEN 'TRANSFER  '
                    SUBTRACT WS-NUMERIC-AMT FROM WS-ACCT-BALANCE(WS-I)
            END-EVALUATE.
            
        WRITE-ACCOUNTS-BACK-TO-FILE.
-           OPEN OUTPUT ACCOUNTS.
+           OPEN OUTPUT TRANSOUT.
            
            PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > WS-ACCT-COUNT
                STRING WS-ACCT-ID(WS-I) DELIMITED BY SPACE
@@ -151,8 +156,8 @@
                       WS-ACCT-BALANCE(WS-I) DELIMITED BY SIZE
                    INTO WS-UPDATED-RECORD
                END-STRING
-               MOVE WS-UPDATED-RECORD TO ACCOUNT-RECORD
-               WRITE ACCOUNT-RECORD
+               MOVE WS-UPDATED-RECORD TO UPDATED-ACCOUNT-RECORD
+               WRITE UPDATED-ACCOUNT-RECORD
            END-PERFORM.
            
-           CLOSE ACCOUNTS.
+           CLOSE TRANSOUT.

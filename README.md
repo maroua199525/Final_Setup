@@ -1,100 +1,63 @@
 # 🚀 Open Source JCL Alternative - Student Edition
 
+# JCL Simulation Framework
+
 ## Overview
-This is an **educational framework** that simulates IBM mainframe JCL (Job Control Language) using open-source tools. Perfect for learning enterprise batch processing concepts without expensive mainframe access.
-
-## 🎯 What You'll Learn
-- Enterprise batch processing concepts
-- Job Control Language (JCL) syntax and structure
+This framework simulates IBM mainframe JCL (Job Control Language) concepts using open-source tools:
+- Shell scripts for JCL parsing and execution
+- Cron for job scheduling
+- File system for dataset management
 - COBOL program integration
-- Dataset management and file processing
-- Job scheduling and dependencies
-- Error handling and recovery
 
-## ⚡ Quick Start
+## Components
 
-### 1. Clone and Setup
-```bash
-git clone <your-repo-url>
-cd jcl-framework-student
-chmod +x *.sh
-```
+### 1. Core Framework
+- `jcl_parser.sh` - Parses JCL-like syntax
+- `setup_datasets.sh` - setup datasets (files)
 
-### 2. Run the Demo
-```bash
-./demo.sh
-```
 
-### 3. Try Your First Job
-```bash
-# Submit the hello world job
-./scheduler.sh submit jobs/hello_world.jcl
+### 2. JCL Syntax Support
+- JOB statements - Job definition and parameters
+- EXEC statements - Program execution
+- DD statements - Dataset definitions
+- PROC statements - Procedure calls
+- IF/THEN/ELSE - Conditional execution
 
-# Check status
-./scheduler.sh status
+### 3. Dataset Types
+- Sequential files (PS)
+- VSAM-like indexed files
+- Generation Data Groups (GDG) simulation
+- Temporary datasets
 
-# View results
-./scheduler.sh history
-```
+### 4. Enterprise Features
+- Job dependencies
+- Return code checking
+- SYSOUT capture
+- Error handling
+- Resource allocation
 
-## 📁 Project Structure
-```
-├── README.md                 # This file
-├── QUICK_START.md            # Detailed setup guide
-├── demo.sh                   # Interactive demonstration
-├── jcl_parser.sh            # Core JCL parser (IBM → Bash)
-├── scheduler.sh             # Job scheduler (simulates TWS/OPC)
-├── dataset_manager.sh       # Dataset management (simulates VSAM/SMS)
-├── jobs/
-│   └── hello_world.jcl      # Example JCL job
-├── programs/
-│   └── hello_world.cbl      # Example COBOL program
-├── student_exercises/       # All practice exercises
-├── data/                    # Sample input data
-└── datasets/               # Working datasets
-```
+## Usage Examples
 
-## 🛠️ Core Components
-
-### JCL Parser (`jcl_parser.sh`)
-Converts IBM JCL syntax to executable bash commands:
 ```jcl
-//MYJOB    JOB CLASS=A,MSGCLASS=X
-//STEP1    EXEC PGM=HELLO-COBOL
+//BANKJOB  JOB  CLASS=A,MSGCLASS=X,NOTIFY=&SYSUID
+//STEP1    EXEC PGM=BATCH-VALIDATOR
+//TRANSIN  DD   DSN=TRANSACTIONS.INPUT,DISP=SHR
+//SYSOUT   DD   SYSOUT=*
+//STEP2    EXEC PGM=ACCOUNT-UPDATE,COND=(0,NE,STEP1)
+//ACCOUNTS DD   DSN=ACCOUNTS.MASTER,DISP=SHR
 //SYSOUT   DD   SYSOUT=*
 ```
 
-### Job Scheduler (`scheduler.sh`)
-Manages job submission and execution:
-```bash
-./scheduler.sh submit jobs/hello_world.jcl
-./scheduler.sh status
-./scheduler.sh history
-```
+## Mapping to IBM Concepts
 
-### Dataset Manager (`dataset_manager.sh`)
-Handles file allocation and management:
-```bash
-./dataset_manager.sh allocate MY.DATA.SET PS 1024 100
-./dataset_manager.sh list
-./dataset_manager.sh delete MY.DATA.SET
-```
-
-## 📚 Learning Path
-
-1. **Start Here:** Read this README and run `./demo.sh`
-2. **Setup:** Follow `QUICK_START.md` for detailed setup
-3. **Practice:** Work through exercises in `student_exercises/`
-4. **Advanced:** Explore enterprise concepts and real-world scenarios
-
-## 🎓 Student Exercises
-
-| Exercise | Topic | Difficulty |
-|----------|-------|------------|
-| Exercise 1 | Basic File Processing | Beginner |
-| Exercise 2 | Banking Workflow | Intermediate |
-| Exercise 3 | Security Audit | Intermediate |
-| Exercise 4 | Monthly Reporting | Advanced |
+| Open Source | IBM Mainframe |
+|-------------|---------------|
+| Shell scripts | JCL |
+| Cron | TWS/OPC |
+| File system | VSAM/SMS |
+| Process pipes | QSAM |
+| Exit codes | Return codes |
+| Log files | SYSOUT |
 
 ## 💡 Key Features
 
@@ -112,16 +75,15 @@ When you run a job, the framework creates detailed logs showing exactly what hap
 ```bash
 # After running: ./scheduler.sh submit jobs/hello_world.jcl
 # View the execution details:
-cat /tmp/jcl_sim/sysout/HELLO_STEP1.log
+cat ./output/sysout/HELLO_STEP1_cobol.log
 ```
 
 **Example output:**
 ```
-Executing COBOL program: hello_world.cbl
-Found COBOL program at: programs/hello_world.cbl
-Compiling hello_world.cbl...
-Compilation successful. Executing...
-Hello from COBOL!
+Hello World from JCL Framework!
+================================
+This is a simple COBOL program demonstration
+Program executed successfully
 ```
 
 This demonstrates **real enterprise batch processing** - your COBOL programs are actually compiled and executed, just like in IBM mainframes!
